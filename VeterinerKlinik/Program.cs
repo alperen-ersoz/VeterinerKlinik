@@ -11,7 +11,7 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(connectionString));
 builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
-builder.Services.AddDefaultIdentity<ApplicationUser>(options => options.SignIn.RequireConfirmedAccount = true)
+builder.Services.AddDefaultIdentity<ApplicationUser>(options => options.SignIn.RequireConfirmedAccount = false)
     .AddRoles<IdentityRole>()
     .AddEntityFrameworkStores<ApplicationDbContext>();
 builder.Services.AddControllersWithViews();
@@ -24,6 +24,20 @@ using (var scope = app.Services.CreateScope())
         .GetRequiredService<ApplicationDbContext>();
 
     await DbInitializer.SeedAsync(context);
+
+    var roleManager = scope.ServiceProvider
+    .GetRequiredService<RoleManager<IdentityRole>>();
+
+    await IdentityInitializer.SeedAsync(roleManager);
+
+    if (app.Environment.IsDevelopment())
+    {
+        var userManager = scope.ServiceProvider
+            .GetRequiredService<UserManager<ApplicationUser>>();
+
+        await IdentityInitializer.SeedAdminAsync(
+            userManager, app.Configuration);
+    }
 }
 
 // Configure the HTTP request pipeline.
@@ -40,6 +54,8 @@ else
 
 app.UseHttpsRedirection();
 app.UseRouting();
+
+app.UseAuthentication();
 
 app.UseAuthorization();
 
